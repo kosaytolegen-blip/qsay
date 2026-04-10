@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="ru" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Расстояние между точками</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;family=Caveat:wght@700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    * { font-family: 'Nunito', sans-serif; }
+    .slide { display: none; }
+    .slide.active { display: flex; }
+    .grid-bg {
+      background-image:
+        linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    .point-marker {
+      width: 14px; height: 14px; border-radius: 50%;
+      position: absolute; transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.9);
+      transition: all 0.3s;
+    }
+    .point-marker:hover { transform: translate(-50%, -50%) scale(1.4); }
+    .coord-plane { position: relative; }
+    .axis-label { position: absolute; font-size: 11px; color: #64748b; font-weight: 600; }
+    canvas { display: block; }
+    .toast {
+      animation: slideUp 0.4s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+    .fade-in-delay { animation: fadeIn 0.5s ease 0.2s forwards; opacity: 0; }
+    .fade-in-delay2 { animation: fadeIn 0.5s ease 0.4s forwards; opacity: 0; }
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input[type="number"] { -moz-appearance: textfield; }
+    .progress-dot { width: 12px; height: 12px; border-radius: 50%; transition: all 0.3s; }
+    .draggable-point {
+      width: 22px; height: 22px; border-radius: 50%; position: absolute;
+      cursor: grab; transform: translate(-50%, -50%);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      transition: box-shadow 0.2s;
+      z-index: 10;
+    }
+    .draggable-point:active { cursor: grabbing; box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-stone-50 text-stone-800">
+  <div id="app" class="h-full w-full flex flex-col overflow-auto"><!-- Header -->
+   <header class="px-6 py-4 flex items-center justify-between border-b border-stone-200 bg-white/80 backdrop-blur shrink-0">
+    <div>
+     <h1 id="mainTitle" class="text-xl font-800 text-stone-800" style="font-family:'Caveat',cursive; font-size:28px;">Расстояние между точками</h1>
+     <p class="text-xs text-stone-400 font-600">8 класс · Координатная плоскость</p>
+    </div>
+    <div class="flex items-center gap-2"><span id="slideCounter" class="text-sm font-700 text-stone-500">1 / 7</span>
+    </div>
+   </header><!-- Progress -->
+   <div class="px-6 py-2 flex gap-2 items-center shrink-0 bg-white/50">
+    <div id="progressDots" class="flex gap-2"></div>
+   </div><!-- Slides Container -->
+   <div id="slidesContainer" class="flex-1 px-4 py-4 overflow-auto"><!-- SLIDE 0: Intro -->
+    <div class="slide active" data-slide="0">
+     <div class="flex flex-col items-center justify-center h-full text-center gap-6 max-w-xl mx-auto">
+      <div class="fade-in">
+       <div class="w-20 h-20 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4"><span class="text-4xl">📐</span>
+       </div>
+       <h2 class="text-3xl font-900 text-stone-800 mb-2" style="font-family:'Caveat',cursive;">Формула расстояния</h2>
+       <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-100 fade-in-delay">
+        <p class="text-stone-500 mb-4 text-sm">Расстояние между точками A(x₁, y₁) и B(x₂, y₂):</p>
+        <div class="text-2xl font-800 text-amber-600 mb-4">
+         d = √((x₂−x₁)² + (y₂−y₁)²)
+        </div>
+        <p class="text-stone-400 text-xs">Эта формула основана на теореме Пифагора</p>
+       </div>
+      </div>
+      <div class="fade-in-delay2 text-stone-400 text-sm flex items-center gap-1">
+       Нажмите «Далее», чтобы начать <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+      </div>
+     </div>
+    </div><!-- SLIDE 1: Task 1 — Calculate distance -->
+    <div class="slide" data-slide="1">
+     <div class="max-w-2xl mx-auto w-full flex flex-col gap-4">
+      <div class="fade-in flex items-center gap-3 mb-1"><span class="bg-amber-100 text-amber-700 text-xs font-700 px-3 py-1 rounded-full">Задание 1</span> <span class="text-stone-400 text-xs">Вычисление расстояния</span>
+      </div>
+      <h3 class="text-lg font-800 text-stone-700 fade-in">Найдите расстояние между точками A(2, 3) и B(6, 6)</h3>
+      <div class="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm fade-in-delay">
+       <canvas id="canvas1" width="400" height="300" class="mx-auto rounded-xl" style="max-width:100%;"></canvas>
+      </div>
+      <div class="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm fade-in-delay2">
+       <p class="text-sm text-stone-500 mb-3">Подставьте значения и вычислите:</p>
+       <div class="flex flex-wrap items-center gap-2 mb-4"><span class="text-sm font-600">d = √((</span> <input id="t1_x2" type="number" class="w-12 h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-amber-400 focus:outline-none" placeholder="?"> <span class="text-sm font-600">− 2)² + (</span> <input id="t1_y2" type="number" class="w-12 h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-amber-400 focus:outline-none" placeholder="?"> <span class="text-sm font-600">− 3)²)</span>
+       </div>
+       <div class="flex items-center gap-2 mb-3"><span class="text-sm font-600">Ответ: d =</span> <input id="t1_ans" type="number" step="any" class="w-16 h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-amber-400 focus:outline-none" placeholder="?">
+       </div><button onclick="checkTask1()" class="bg-amber-500 hover:bg-amber-600 text-white font-700 text-sm px-5 py-2 rounded-xl transition-colors">Проверить</button>
+       <div id="t1_feedback" class="mt-3 text-sm font-600"></div>
+      </div>
+     </div>
+    </div><!-- SLIDE 2: Task 2 — Match pairs -->
+    <div class="slide" data-slide="2">
+     <div class="max-w-2xl mx-auto w-full flex flex-col gap-4">
+      <div class="fade-in flex items-center gap-3 mb-1"><span class="bg-teal-100 text-teal-700 text-xs font-700 px-3 py-1 rounded-full">Задание 2</span> <span class="text-stone-400 text-xs">Соотнесите пары</span>
+      </div>
+      <h3 class="text-lg font-800 text-stone-700 fade-in">Какое расстояние соответствует каждой паре точек?</h3>
+      <div class="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm fade-in-delay">
+       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="matchContainer">
+       </div>
+      </div><button onclick="checkTask2()" class="bg-teal-500 hover:bg-teal-600 text-white font-700 text-sm px-5 py-2 rounded-xl transition-colors self-start fade-in-delay2">Проверить</button>
+      <div id="t2_feedback" class="text-sm font-600"></div>
+     </div>
+    </div><!-- SLIDE 3: Task 3 — Find missing coordinate -->
+    <div class="slide" data-slide="3">
+     <div class="max-w-2xl mx-auto w-full flex flex-col gap-4">
+      <div class="fade-in flex items-center gap-3 mb-1"><span class="bg-violet-100 text-violet-700 text-xs font-700 px-3 py-1 rounded-full">Задание 3</span> <span class="text-stone-400 text-xs">Найдите неизвестную координату</span>
+      </div>
+      <h3 class="text-lg font-800 text-stone-700 fade-in">Расстояние между A(1, 2) и B(x, 5) равно 5. Найдите x (x &gt; 0).</h3>
+      <div class="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm fade-in-delay">
+       <p class="text-sm text-stone-500 mb-3">Подсказка: подставьте в формулу и решите уравнение</p>
+       <div class="bg-stone-50 rounded-xl p-4 mb-4 text-sm text-stone-600 font-600">
+        5 = √((x − 1)² + (5 − 2)²)<br>
+         25 = (x − 1)² + 9<br>
+         (x − 1)² = ?
+       </div>
+       <div class="flex items-center gap-2 mb-2"><span class="text-sm font-600">(x − 1)² =</span> <input id="t3_step" type="number" class="w-16 h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-violet-400 focus:outline-none" placeholder="?">
+       </div>
+       <div class="flex items-center gap-2 mb-3"><span class="text-sm font-600">x =</span> <input id="t3_ans" type="number" step="any" class="w-16 h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-violet-400 focus:outline-none" placeholder="?">
+       </div><button onclick="checkTask3()" class="bg-violet-500 hover:bg-violet-600 text-white font-700 text-sm px-5 py-2 rounded-xl transition-colors">Проверить</button>
+       <div id="t3_feedback" class="mt-3 text-sm font-600"></div>
+      </div>
+     </div>
+    </div><!-- SLIDE 4: Task 4 — Drag points -->
+    <div class="slide" data-slide="4">
+     <div class="max-w-2xl mx-auto w-full flex flex-col gap-4">
+      <div class="fade-in flex items-center gap-3 mb-1"><span class="bg-rose-100 text-rose-700 text-xs font-700 px-3 py-1 rounded-full">Задание 4</span> <span class="text-stone-400 text-xs">Интерактивная плоскость</span>
+      </div>
+      <h3 class="text-lg font-800 text-stone-700 fade-in">Перетащите точки так, чтобы расстояние между ними стало ровно 10</h3>
+      <div class="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm fade-in-delay">
+       <div id="dragPlane" class="coord-plane grid-bg rounded-xl relative mx-auto" style="width:340px;height:340px;border:1px solid #e7e5e4;">
+        <canvas id="canvas4" width="340" height="340" style="position:absolute;top:0;left:0;pointer-events:none;"></canvas>
+        <div id="dragA" class="draggable-point bg-rose-500" style="left:70px;top:170px;"></div>
+        <div id="dragB" class="draggable-point bg-sky-500" style="left:270px;top:170px;"></div>
+       </div>
+       <div class="mt-3 flex items-center justify-between">
+        <div class="text-sm font-600 text-stone-500">
+         A(<span id="dragAx">0</span>, <span id="dragAy">0</span>) &nbsp; B(<span id="dragBx">0</span>, <span id="dragBy">0</span>)
+        </div>
+        <div class="text-sm font-700" id="dragDist">
+         d = ?
+        </div>
+       </div>
+       <div id="t4_feedback" class="mt-2 text-sm font-600"></div>
+      </div>
+     </div>
+    </div><!-- SLIDE 5: Task 5 — Triangle perimeter -->
+    <div class="slide" data-slide="5">
+     <div class="max-w-2xl mx-auto w-full flex flex-col gap-4">
+      <div class="fade-in flex items-center gap-3 mb-1"><span class="bg-emerald-100 text-emerald-700 text-xs font-700 px-3 py-1 rounded-full">Задание 5</span> <span class="text-stone-400 text-xs">Периметр треугольника</span>
+      </div>
+      <h3 class="text-lg font-800 text-stone-700 fade-in">Найдите периметр треугольника с вершинами A(0, 0), B(6, 0), C(3, 4)</h3>
+      <div class="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm fade-in-delay">
+       <canvas id="canvas5" width="400" height="280" class="mx-auto rounded-xl" style="max-width:100%;"></canvas>
+      </div>
+      <div class="bg-white rounded-2xl p-5 border border-stone-100 shadow-sm fade-in-delay2">
+       <p class="text-sm text-stone-500 mb-3">Вычислите длину каждой стороны:</p>
+       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div class="flex flex-col gap-1"><label class="text-xs font-600 text-stone-400">AB =</label> <input id="t5_ab" type="number" step="any" class="h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-emerald-400 focus:outline-none" placeholder="?">
+        </div>
+        <div class="flex flex-col gap-1"><label class="text-xs font-600 text-stone-400">BC =</label> <input id="t5_bc" type="number" step="any" class="h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-emerald-400 focus:outline-none" placeholder="?">
+        </div>
+        <div class="flex flex-col gap-1"><label class="text-xs font-600 text-stone-400">AC =</label> <input id="t5_ac" type="number" step="any" class="h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-emerald-400 focus:outline-none" placeholder="?">
+        </div>
+       </div>
+       <div class="flex items-center gap-2 mb-3"><span class="text-sm font-600">Периметр P =</span> <input id="t5_p" type="number" step="any" class="w-20 h-9 border border-stone-200 rounded-lg text-center text-sm font-700 focus:border-emerald-400 focus:outline-none" placeholder="?">
+       </div><button onclick="checkTask5()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-700 text-sm px-5 py-2 rounded-xl transition-colors">Проверить</button>
+       <div id="t5_feedback" class="mt-3 text-sm font-600"></div>
+      </div>
+     </div>
+    </div><!-- SLIDE 6: Results -->
+    <div class="slide" data-slide="6">
+     <div class="flex flex-col items-center justify-center h-full text-center gap-6 max-w-md mx-auto">
+      <div class="fade-in">
+       <div class="w-20 h-20 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-4"><span class="text-4xl">🏆</span>
+       </div>
+       <h2 class="text-3xl font-900 text-stone-800 mb-2" style="font-family:'Caveat',cursive;">Результаты</h2>
+       <div class="bg-white rounded-2xl p-6 shadow-sm border border-stone-100">
+        <p class="text-stone-500 text-sm mb-4">Вы выполнили все задания!</p>
+        <div id="resultsDisplay" class="text-5xl font-900 text-amber-600 mb-2">
+         0 / 5
+        </div>
+        <p id="resultsMessage" class="text-stone-400 text-sm"></p>
+       </div>
+      </div><button onclick="resetAll()" class="bg-stone-200 hover:bg-stone-300 text-stone-700 font-700 text-sm px-5 py-2 rounded-xl transition-colors fade-in-delay"> Начать заново </button>
+     </div>
+    </div>
+   </div><!-- Navigation -->
+   <footer class="px-6 py-3 flex justify-between items-center border-t border-stone-200 bg-white/80 backdrop-blur shrink-0"><button id="prevBtn" onclick="changeSlide(-1)" class="flex items-center gap-1 text-sm font-700 text-stone-400 hover:text-stone-600 transition-colors disabled:opacity-30" disabled> <i data-lucide="chevron-left" style="width:16px;height:16px;"></i> Назад </button> <button id="nextBtn" onclick="changeSlide(1)" class="flex items-center gap-1 text-sm font-700 text-amber-600 hover:text-amber-700 transition-colors"> Далее <i data-lucide="chevron-right" style="width:16px;height:16px;"></i> </button>
+   </footer>
+  </div>
+  <script>
+// State
+let currentSlide = 0;
+const totalSlides = 7;
+const scores = [false, false, false, false, false];
+
+// SDK init
+const defaultConfig = {
+  main_title: 'Расстояние между точками',
+  background_color: '#fafaf9',
+  text_color: '#292524',
+  accent_color: '#f59e0b',
+  surface_color: '#ffffff',
+  secondary_action_color: '#d6d3d1',
+  font_family: 'Nunito',
+  font_size: 16
+};
+
+if (window.elementSdk) {
+  window.elementSdk.init({
+    defaultConfig,
+    onConfigChange: async (config) => {
+      const t = config.main_title || defaultConfig.main_title;
+      document.getElementById('mainTitle').textContent = t;
+      document.body.style.backgroundColor = config.background_color || defaultConfig.background_color;
+      document.body.style.color = config.text_color || defaultConfig.text_color;
+      const font = config.font_family || defaultConfig.font_family;
+      document.body.style.fontFamily = `${font}, Nunito, sans-serif`;
+      const sz = config.font_size || defaultConfig.font_size;
+      document.getElementById('mainTitle').style.fontSize = `${sz * 1.75}px`;
+    },
+    mapToCapabilities: (config) => ({
+      recolorables: [
+        { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+        { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+        { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+        { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
+        { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: (v) => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } },
+      ],
+      borderables: [],
+      fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+      fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } },
+    }),
+    mapToEditPanelValues: (config) => new Map([
+      ['main_title', config.main_title || defaultConfig.main_title]
+    ])
+  });
+}
+
+// Navigation
+function changeSlide(dir) {
+  const slides = document.querySelectorAll('.slide');
+  slides[currentSlide].classList.remove('active');
+  currentSlide = Math.max(0, Math.min(totalSlides - 1, currentSlide + dir));
+  slides[currentSlide].classList.add('active');
+  updateNav();
+  if (currentSlide === 1) drawCanvas1();
+  if (currentSlide === 2) initTask2();
+  if (currentSlide === 4) initDrag();
+  if (currentSlide === 5) drawCanvas5();
+  if (currentSlide === 6) showResults();
+}
+
+function updateNav() {
+  document.getElementById('slideCounter').textContent = `${currentSlide + 1} / ${totalSlides}`;
+  document.getElementById('prevBtn').disabled = currentSlide === 0;
+  document.getElementById('nextBtn').style.display = currentSlide === totalSlides - 1 ? 'none' : 'flex';
+  // progress dots
+  const dots = document.getElementById('progressDots');
+  dots.innerHTML = '';
+  for (let i = 0; i < totalSlides; i++) {
+    const d = document.createElement('div');
+    d.className = 'progress-dot';
+    d.style.backgroundColor = i === currentSlide ? '#f59e0b' : i < currentSlide ? '#fbbf24' : '#d6d3d1';
+    dots.appendChild(d);
+  }
+}
+
+// Task 1
+function drawCanvas1() {
+  const c = document.getElementById('canvas1');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fafaf9';
+  ctx.fillRect(0, 0, w, h);
+  // grid
+  const ox = 50, oy = h - 40, sx = 40, sy = 40;
+  ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 9; i++) { ctx.beginPath(); ctx.moveTo(ox + i * sx, 20); ctx.lineTo(ox + i * sx, oy); ctx.stroke(); }
+  for (let j = 0; j <= 7; j++) { ctx.beginPath(); ctx.moveTo(ox, oy - j * sy); ctx.lineTo(ox + 9 * sx, oy - j * sy); ctx.stroke(); }
+  // axes
+  ctx.strokeStyle = '#78716c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + 9 * sx, oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox, 20); ctx.stroke();
+  // labels
+  ctx.fillStyle = '#78716c'; ctx.font = '11px Nunito'; ctx.textAlign = 'center';
+  for (let i = 0; i <= 9; i++) ctx.fillText(i, ox + i * sx, oy + 15);
+  ctx.textAlign = 'right';
+  for (let j = 1; j <= 7; j++) ctx.fillText(j, ox - 6, oy - j * sy + 4);
+  // dashed lines showing right triangle
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = '#a8a29e'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(ox + 2*sx, oy - 3*sy); ctx.lineTo(ox + 6*sx, oy - 3*sy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox + 6*sx, oy - 3*sy); ctx.lineTo(ox + 6*sx, oy - 6*sy); ctx.stroke();
+  ctx.setLineDash([]);
+  // line AB
+  ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(ox + 2*sx, oy - 3*sy); ctx.lineTo(ox + 6*sx, oy - 6*sy); ctx.stroke();
+  // points
+  [[2,3,'A','#ef4444'],[6,6,'B','#3b82f6']].forEach(([x,y,label,color]) => {
+    ctx.beginPath(); ctx.arc(ox + x*sx, oy - y*sy, 6, 0, Math.PI*2);
+    ctx.fillStyle = color; ctx.fill();
+    ctx.fillStyle = '#292524'; ctx.font = 'bold 13px Nunito'; ctx.textAlign = 'left';
+    ctx.fillText(`${label}(${x},${y})`, ox + x*sx + 10, oy - y*sy - 8);
+  });
+  // dimension labels
+  ctx.fillStyle = '#78716c'; ctx.font = '12px Nunito'; ctx.textAlign = 'center';
+  ctx.fillText('4', ox + 4*sx, oy - 3*sy + 16);
+  ctx.fillText('3', ox + 6*sx + 14, oy - 4.5*sy + 4);
+}
+
+function checkTask1() {
+  const x2 = parseFloat(document.getElementById('t1_x2').value);
+  const y2 = parseFloat(document.getElementById('t1_y2').value);
+  const ans = parseFloat(document.getElementById('t1_ans').value);
+  const fb = document.getElementById('t1_feedback');
+  if (x2 === 6 && y2 === 6 && Math.abs(ans - 5) < 0.1) {
+    fb.innerHTML = '✅ Правильно! d = √(16 + 9) = √25 = 5';
+    fb.className = 'mt-3 text-sm font-600 text-emerald-600 toast';
+    scores[0] = true;
+  } else {
+    fb.innerHTML = '❌ Попробуйте ещё раз. Подставьте координаты B(6, 6).';
+    fb.className = 'mt-3 text-sm font-600 text-rose-500 toast';
+  }
+}
+
+// Task 2 — Match
+const matchPairs = [
+  { points: 'A(0,0) и B(3,4)', answer: '5' },
+  { points: 'C(1,1) и D(4,5)', answer: '5' },
+  { points: 'E(−1,2) и F(2,6)', answer: '5' },
+  { points: 'G(0,0) и H(5,12)', answer: '13' },
+];
+const matchOptions = ['5', '5', '5', '13'];
+let matchSelections = {};
+
+function initTask2() {
+  const container = document.getElementById('matchContainer');
+  if (container.children.length > 0) return;
+  matchPairs.forEach((pair, i) => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center justify-between bg-stone-50 rounded-xl px-4 py-3';
+    div.innerHTML = `
+      <span class="text-sm font-700 text-stone-700">${pair.points}</span>
+      <select id="match_${i}" class="border border-stone-200 rounded-lg px-2 py-1 text-sm font-700 focus:border-teal-400 focus:outline-none bg-white" onchange="matchSelections[${i}]=this.value">
+        <option value="">—</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="13">13</option>
+        <option value="√50">√50</option>
+      </select>`;
+    container.appendChild(div);
+  });
+}
+
+function checkTask2() {
+  let correct = 0;
+  matchPairs.forEach((pair, i) => {
+    const sel = document.getElementById(`match_${i}`);
+    if (sel.value === pair.answer) { correct++; sel.style.borderColor = '#10b981'; }
+    else { sel.style.borderColor = '#f43f5e'; }
+  });
+  const fb = document.getElementById('t2_feedback');
+  if (correct === 4) {
+    fb.innerHTML = '✅ Отлично! Все пары верны!';
+    fb.className = 'text-sm font-600 text-emerald-600 toast';
+    scores[1] = true;
+  } else {
+    fb.innerHTML = `❌ Верно ${correct} из 4. Подсказка: первые три пары дают одинаковый ответ.`;
+    fb.className = 'text-sm font-600 text-rose-500 toast';
+  }
+}
+
+// Task 3
+function checkTask3() {
+  const step = parseFloat(document.getElementById('t3_step').value);
+  const ans = parseFloat(document.getElementById('t3_ans').value);
+  const fb = document.getElementById('t3_feedback');
+  if (step === 16 && ans === 5) {
+    fb.innerHTML = '✅ Верно! (x−1)² = 16, x−1 = 4, x = 5';
+    fb.className = 'mt-3 text-sm font-600 text-emerald-600 toast';
+    scores[2] = true;
+  } else {
+    fb.innerHTML = '❌ Подсказка: 25 − 9 = 16, а √16 = 4';
+    fb.className = 'mt-3 text-sm font-600 text-rose-500 toast';
+  }
+}
+
+// Task 4 — Drag
+let dragState = null;
+function initDrag() {
+  const plane = document.getElementById('dragPlane');
+  const ptA = document.getElementById('dragA');
+  const ptB = document.getElementById('dragB');
+  updateDragDisplay();
+
+  function startDrag(e, pt) {
+    e.preventDefault();
+    dragState = pt;
+  }
+  function moveDrag(e) {
+    if (!dragState) return;
+    const rect = plane.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let x = Math.max(0, Math.min(340, clientX - rect.left));
+    let y = Math.max(0, Math.min(340, clientY - rect.top));
+    // snap to grid (each cell = 34px = 1 unit on 10x10 grid)
+    x = Math.round(x / 34) * 34;
+    y = Math.round(y / 34) * 34;
+    dragState.style.left = x + 'px';
+    dragState.style.top = y + 'px';
+    updateDragDisplay();
+  }
+  function endDrag() { dragState = null; }
+
+  ptA.onmousedown = (e) => startDrag(e, ptA);
+  ptB.onmousedown = (e) => startDrag(e, ptB);
+  ptA.ontouchstart = (e) => startDrag(e, ptA);
+  ptB.ontouchstart = (e) => startDrag(e, ptB);
+  plane.onmousemove = moveDrag;
+  plane.ontouchmove = moveDrag;
+  plane.onmouseup = endDrag;
+  plane.ontouchend = endDrag;
+  plane.onmouseleave = endDrag;
+}
+
+function updateDragDisplay() {
+  const ptA = document.getElementById('dragA');
+  const ptB = document.getElementById('dragB');
+  const ax = Math.round(parseInt(ptA.style.left) / 34) - 5;
+  const ay = 5 - Math.round(parseInt(ptA.style.top) / 34);
+  const bx = Math.round(parseInt(ptB.style.left) / 34) - 5;
+  const by = 5 - Math.round(parseInt(ptB.style.top) / 34);
+  document.getElementById('dragAx').textContent = ax;
+  document.getElementById('dragAy').textContent = ay;
+  document.getElementById('dragBx').textContent = bx;
+  document.getElementById('dragBy').textContent = by;
+  const d = Math.sqrt((bx - ax) ** 2 + (by - ay) ** 2);
+  const dText = `d = ${d % 1 === 0 ? d : d.toFixed(2)}`;
+  document.getElementById('dragDist').textContent = dText;
+  // draw line
+  const c = document.getElementById('canvas4');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 340, 340);
+  // grid axes
+  ctx.strokeStyle = '#a8a29e'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(170, 0); ctx.lineTo(170, 340); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 170); ctx.lineTo(340, 170); ctx.stroke();
+  // line
+  ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(parseInt(ptA.style.left), parseInt(ptA.style.top));
+  ctx.lineTo(parseInt(ptB.style.left), parseInt(ptB.style.top));
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const fb = document.getElementById('t4_feedback');
+  if (Math.abs(d - 10) < 0.01) {
+    fb.innerHTML = '✅ Отлично! Расстояние ровно 10!';
+    fb.className = 'mt-2 text-sm font-600 text-emerald-600 toast';
+    scores[3] = true;
+  } else {
+    fb.innerHTML = '';
+  }
+}
+
+// Task 5
+function drawCanvas5() {
+  const c = document.getElementById('canvas5');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const w = c.width, h = c.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fafaf9'; ctx.fillRect(0, 0, w, h);
+  const ox = 60, oy = h - 40, sx = 42, sy = 42;
+  // grid
+  ctx.strokeStyle = '#e7e5e4'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 8; i++) { ctx.beginPath(); ctx.moveTo(ox + i*sx, 20); ctx.lineTo(ox + i*sx, oy); ctx.stroke(); }
+  for (let j = 0; j <= 5; j++) { ctx.beginPath(); ctx.moveTo(ox, oy - j*sy); ctx.lineTo(ox + 8*sx, oy - j*sy); ctx.stroke(); }
+  ctx.strokeStyle = '#78716c'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + 8*sx, oy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox, 20); ctx.stroke();
+  ctx.fillStyle = '#78716c'; ctx.font = '11px Nunito'; ctx.textAlign = 'center';
+  for (let i = 0; i <= 8; i++) ctx.fillText(i, ox + i*sx, oy + 15);
+  ctx.textAlign = 'right';
+  for (let j = 1; j <= 5; j++) ctx.fillText(j, ox - 6, oy - j*sy + 4);
+  // triangle
+  const pts = [[0,0],[6,0],[3,4]];
+  ctx.fillStyle = 'rgba(16,185,129,0.1)';
+  ctx.beginPath();
+  pts.forEach(([x,y], i) => { i === 0 ? ctx.moveTo(ox + x*sx, oy - y*sy) : ctx.lineTo(ox + x*sx, oy - y*sy); });
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  pts.forEach(([x,y], i) => { i === 0 ? ctx.moveTo(ox + x*sx, oy - y*sy) : ctx.lineTo(ox + x*sx, oy - y*sy); });
+  ctx.closePath(); ctx.stroke();
+  // points
+  const labels = ['A','B','C'];
+  const colors = ['#ef4444','#3b82f6','#8b5cf6'];
+  pts.forEach(([x,y], i) => {
+    ctx.beginPath(); ctx.arc(ox + x*sx, oy - y*sy, 6, 0, Math.PI*2);
+    ctx.fillStyle = colors[i]; ctx.fill();
+    ctx.fillStyle = '#292524'; ctx.font = 'bold 13px Nunito'; ctx.textAlign = 'left';
+    const offX = i === 0 ? -20 : i === 1 ? 10 : 10;
+    const offY = i === 2 ? -12 : 18;
+    ctx.fillText(`${labels[i]}(${x},${y})`, ox + x*sx + offX, oy - y*sy + offY);
+  });
+}
+
+function checkTask5() {
+  const ab = parseFloat(document.getElementById('t5_ab').value);
+  const bc = parseFloat(document.getElementById('t5_bc').value);
+  const ac = parseFloat(document.getElementById('t5_ac').value);
+  const p = parseFloat(document.getElementById('t5_p').value);
+  const fb = document.getElementById('t5_feedback');
+  // AB = 6, BC = √(9+16)=5, AC = √(9+16)=5, P = 16
+  const abOk = Math.abs(ab - 6) < 0.1;
+  const bcOk = Math.abs(bc - 5) < 0.1;
+  const acOk = Math.abs(ac - 5) < 0.1;
+  const pOk = Math.abs(p - 16) < 0.1;
+  if (abOk && bcOk && acOk && pOk) {
+    fb.innerHTML = '✅ Превосходно! AB=6, BC=5, AC=5, P=16. Это равнобедренный треугольник!';
+    fb.className = 'mt-3 text-sm font-600 text-emerald-600 toast';
+    scores[4] = true;
+  } else {
+    let hints = [];
+    if (!abOk) hints.push('AB: √((6-0)²+(0-0)²)');
+    if (!bcOk) hints.push('BC: √((3-6)²+(4-0)²)');
+    if (!acOk) hints.push('AC: √((3-0)²+(4-0)²)');
+    fb.innerHTML = `❌ Проверьте: ${hints.length ? hints.join(', ') : 'сумму сторон'}`;
+    fb.className = 'mt-3 text-sm font-600 text-rose-500 toast';
+  }
+}
+
+// Results
+function showResults() {
+  const total = scores.filter(Boolean).length;
+  document.getElementById('resultsDisplay').textContent = `${total} / 5`;
+  const msgs = [
+    'Попробуйте ещё раз — вы справитесь! 💪',
+    'Неплохое начало! Повторите формулу. 📚',
+    'Хороший результат! Ещё чуть-чуть! 🌟',
+    'Отлично! Вы почти мастер! 🎯',
+    'Великолепно! Почти идеально! 🔥',
+    'Идеально! Вы настоящий математик! 🏆'
+  ];
+  document.getElementById('resultsMessage').textContent = msgs[total];
+}
+
+function resetAll() {
+  scores.fill(false);
+  currentSlide = 0;
+  document.querySelectorAll('.slide').forEach((s, i) => s.classList.toggle('active', i === 0));
+  document.querySelectorAll('input').forEach(i => i.value = '');
+  document.querySelectorAll('[id$="_feedback"]').forEach(f => f.innerHTML = '');
+  document.querySelectorAll('select').forEach(s => { s.value = ''; s.style.borderColor = ''; });
+  matchSelections = {};
+  document.getElementById('matchContainer').innerHTML = '';
+  updateNav();
+}
+
+// Init
+updateNav();
+lucide.createIcons();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9ea199db007be4c3',t:'MTc3NTgyMjUzMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
